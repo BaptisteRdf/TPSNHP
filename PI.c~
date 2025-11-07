@@ -1,0 +1,40 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+    
+ 
+ 
+       
+double f(double x)
+{
+   return 4.0/(1.0+x*x);
+}
+
+int main()
+
+{
+    clock_t start, end;
+    double elapsed;
+    double a=0.0;
+    double b=1.0;
+    double N=1000.0;
+    double I=0.0;
+    
+    double h=(b-a)/N;
+    
+    start = clock(); 
+    
+    for (int i=0;i<1000;i++)
+    {
+        I=I+(f(i*h)+f((i+1.0)*h))*(h)*0.5;
+    }
+    printf("La valeur de l'intégrale est %.8f \n",I);
+    end = clock(); 
+    
+    elapsed = ((double)end - start) / CLOCKS_PER_SEC; /* Conversion en seconde  */
+ 
+ 
+    printf("%.6f secondes entre start et end.\n", elapsed);
+    
+    return 0;
+}
