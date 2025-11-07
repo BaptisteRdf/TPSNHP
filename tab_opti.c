@@ -1,32 +1,38 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#ifndef _OPENMP_
+#ifdef _OPENMP_
 #include <omp.h>
+#else
+/* fallback minimal pour compilation sans OpenMP */
+static double omp_get_wtime(void) { return (double)clock() / CLOCKS_PER_SEC; }
+static int omp_get_num_threads(void) { return 1; }
+static int omp_get_max_threads(void) { return 1; }
 #endif
 
 int main()
 {
-    clock_t start, end;
-    double elapsed;
+    double start, end, elapsed;
     start = omp_get_wtime();
 
 
-    int N=100000;
-    int coeur=0;
-    double tab_ini[N], tab_fin[N];
-
+    int N = 100000;
+    int coeur = 0;
+    double *tab_ini = (double*)malloc(N*sizeof(double));
+    double *tab_fin = (double*)malloc(N*sizeof(double));
     #pragma omp parallel shared(tab_fin, tab_ini)
     {
-        coeur=omp_get_num_threads();
+        /* Récupérer le nombre de threads une seule fois */
+        #pragma omp single
+        coeur = omp_get_num_threads();
 
-        #pragma omp for schedule(static) firstprivate(N)
+        #pragma omp for schedule(static)
         for (int i=0;i<N;i++)
         {
             tab_ini[i]=2.0*(double)i;
         }
 
-        #pragma omp for schedule(static) firstprivate(N)
+        #pragma omp for schedule(static)
         for (int n=1;n<N-1;n++)
         {
             tab_fin[n]=0.25*(tab_ini[n-1]+tab_ini[n+1])+0.5*tab_ini[n];
@@ -48,5 +54,8 @@ int main()
     }
     printf("%.7f secondes entre start et end.\n", elapsed);
     printf("Coeur : %d\n",coeur);
+    /* libération de la mémoire allouée */
+    free(tab_ini);
+    free(tab_fin);
     return 0;
 }
