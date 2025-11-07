@@ -19,7 +19,7 @@ int main()
     
     double a=0.0;
     double b=1.0;
-    double N=1000.0;
+    double N=1000000000.0;
     double I=0.0;
     double h=(b-a)/N;
     
