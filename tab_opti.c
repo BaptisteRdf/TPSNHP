@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#ifdef _OPENMP_
+#ifndef _OPENMP_
 #include <omp.h>
 #else
 /* fallback minimal pour compilation sans OpenMP */
@@ -16,7 +16,7 @@ int main()
     start = omp_get_wtime();
 
 
-    int N = 100000;
+    int N = 10000000;
     int coeur = 0;
     double *tab_ini = (double*)malloc(N*sizeof(double));
     double *tab_fin = (double*)malloc(N*sizeof(double));
@@ -47,11 +47,11 @@ int main()
 
     end = omp_get_wtime();
     elapsed = end - start;
-
+/*
     for (int i=0;i<N;i++)
     {
         printf("tab_fin[%d]=%.2f \n",i,tab_fin[i]);
-    }
+    }*/
     printf("%.7f secondes entre start et end.\n", elapsed);
     printf("Coeur : %d\n",coeur);
     /* libération de la mémoire allouée */
