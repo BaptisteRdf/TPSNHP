@@ -7,45 +7,46 @@
 #endif
 
 // Paramètre
-const double PI=3.14159265358979323846;
-int N=10000000;
-double V=0.1;
-double D=0.01;
+    const double PI=3.14159265358979323846;
+    int N=100000;
+    int Nt = 10000;
+    double V=0.1;
+    double D=0.01;
+    
 
 
 void init(double *x, double *f0, int N)
 {
-    #pragma omp parallel shared(x,f0)
+    #pragma omp for schedule(static)
+    for (int i=0; i<=N;i++)
     {
-
-        #pragma omp for schedule(static)
-        for (int i=0; i<N;i++)
-        {
-            f0[i]=2.0+cos(PI*x[i]);
-        }
-    }   
+        f0[i]=2.0+cos(PI*x[i]);
+    }  
 }
 
-void smb(double *f0, double *F_tab, double dx, int N)
+void smb(double *f0, double *F_tab, double dx, int N, double coeff_V, double coeff_D)
 {
-    #pragma omp for schedule(static)
+    #pragma omp for schedule(static) nowait
     for (int i=1;i<N;i++)
     {
-        double df = ( f0[i] - f0[i-1]) / dx;
-        double ddf = ( f0[i+1] - (2.0) * f0[i] + f0[i-1]) / (dx*dx);
-        F_tab[i] = (-1.0)* V * df + D * ddf;
+        double df = ( f0[i] - f0[i-1]);
+        double ddf = ( f0[i+1] - (2.0) * f0[i] + f0[i-1]);
+        F_tab[i] = coeff_V * df + coeff_D * ddf;
+    }
+    
+    #pragma omp single nowait
+    {
+        F_tab[0] = coeff_V * (f0[0] - f0[N]) + coeff_D * (f0[1] - 2.0 * f0[0] + f0[N]);
+        F_tab[N] = coeff_V * (f0[N] - f0[N-1]) + coeff_D * (f0[0] - 2.0 * f0[N] + f0[N-1]);
     }
 }
 
 void integre(double *f0, double *F_tab, double dt, int N)
 {
-    #pragma omp parallel shared(f0,F_tab)
+    #pragma omp for schedule(static) nowait
+    for (int i=0;i<=N;i++)
     {
-        #pragma omp for schedule(static)
-        for (int i=1;i<N;i++)
-        {
-            f0[i] = f0[i] + dt * F_tab[i];
-        }
+        f0[i] = f0[i] + dt * F_tab[i];
     }
 }
 
@@ -53,37 +54,46 @@ int main()
 {
     double start, end, elapsed;
     int nthreads;
-    start = omp_get_wtime();
+    
 
     // Initialisation des tableaux
-    double *x = (double*)malloc(N*sizeof(double));
-    double *f0 = (double*)malloc(N*sizeof(double));
-    double *F_tab = (double*)malloc(N*sizeof(double));
+    double *x = (double*)malloc((N+1)*sizeof(double));
+    double *f0 = (double*)malloc((N+1)*sizeof(double));
+    double *F_tab = (double*)malloc((N+1)*sizeof(double));
 
-    double dx = 1.0 / (double)(N-1);
-    double dt = 0.0005;
+    double dx = 2.0 / (double)(N);
 
-    // Initialisation des positions
-    #pragma omp parallel shared(x)
+    double dt_diff= 0.5 * (dx*dx) / D;
+    double dt_conv= dx / V;
+
+    double dt = fmin(dt_diff, dt_conv);
+    
+    // Précalcul des coefficients
+    double coeff_V = -V / dx;
+    double coeff_D = D / (dx * dx);
+
+    start = omp_get_wtime();
+    
+
+    #pragma omp parallel shared(f0,F_tab,x) firstprivate(dt,dx,N,coeff_V,coeff_D)
     {
         nthreads = omp_get_num_threads();
         #pragma omp for schedule(static)
-        for (int i=0;i<N;i++)
+        for (int i=0;i<=N;i++)
         {
-            x[i] = i * dx;
+            x[i] = -1.0 + i * dx;
+        }
+
+        // Initialisation de f0
+        init(x, f0, N);
+
+        for (int it=0; it<Nt; it++)
+        {
+            smb(f0, F_tab, dx, N, coeff_V, coeff_D);
+            integre(f0, F_tab, dt, N);
         }
     }
     
-
-    // Initialisation de f0
-    init(x, f0, N);
-
-    int Nt = 10000000;
-    for (int it=0; it<Nt; it++)
-    {
-        smb(f0, F_tab, dx, N);
-        integre(f0, F_tab, dt, N);
-    }
 
     end = omp_get_wtime();
     elapsed = end - start;
