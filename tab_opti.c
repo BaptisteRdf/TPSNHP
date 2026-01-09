@@ -1,22 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-//#ifndef _OPENMP_ 
-#include <omp.h>    
-//#else
-
-//#endif
+#ifdef _OPENMP_
+#include <omp.h>
+#else
+/* fallback minimal pour compilation sans OpenMP */
+static double omp_get_wtime(void) { return (double)clock() / CLOCKS_PER_SEC; }
+static int omp_get_num_threads(void) { return 1; }
+static int omp_get_max_threads(void) { return 1; }
+#endif
 
 int main()
 {
     double start, end, elapsed;
     start = omp_get_wtime();
 
-    int indice_global=-1;
-    int indice_local=-1;
-    double max_loc=0.0;
-    double max_global=0.0;
-    int N = 100000000;
+
+    int N = 100000;
     int coeur = 0;
     double *tab_ini = (double*)malloc(N*sizeof(double));
     double *tab_fin = (double*)malloc(N*sizeof(double));
@@ -66,7 +66,7 @@ int main()
     end = omp_get_wtime();
     elapsed = end - start;
 
-    /*for (int i=0;i<N;i++)
+    for (int i=0;i<N;i++)
     {
         printf("tab_fin[%d]=%.2f \n",i,tab_fin[i]);
     }*/
