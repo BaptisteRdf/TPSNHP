@@ -35,10 +35,10 @@ int main()
     	{
       		psomme+=f((double)i*h);
     	}
-	#pragma omp critical
-	{
-		somme+=psomme;	
-    	}	
+	    #pragma omp critical
+	    {
+		    somme+=psomme;	
+        }	
     }
     somme=h*(somme+0.5*(f0+fn));
     printf("La valeur de l'intégrale est %.8f \n",somme);
