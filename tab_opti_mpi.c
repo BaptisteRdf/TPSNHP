@@ -41,7 +41,6 @@ int main(int argc, char *argv[])
 	if(iCPU==0)
 	{
 		erreur = MPI_Send(&X[Np],1,MPI_DOUBLE,1,66,MPI_COMM_WORLD);
-		
 	}
 
 	for(int n=1, n<Np-1, n++)
